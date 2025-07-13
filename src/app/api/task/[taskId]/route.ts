@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
     const apiKey = process.env.BROWSE_API_KEY;
     const robotId = process.env.ROBOT_ID;
-    const taskId = params.taskId;
+    const { taskId } = await params;
 
     if (!apiKey || !robotId) {
       return NextResponse.json(
