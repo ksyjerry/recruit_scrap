@@ -9,22 +9,51 @@ import {
 } from "@heroicons/react/24/outline";
 import * as XLSX from "xlsx";
 
+// 타입 정의
+interface JobData {
+  "Job Title"?: string;
+  "Company Name"?: string;
+  Location?: string;
+  "Career Level"?: string;
+  "Education Requirement"?: string;
+  "Application Deadline"?: string;
+  "Date Posted"?: string;
+  "Job Sector"?: string;
+  "Job Position"?: string;
+  "Job Details Link"?: string;
+  "Company Info Link"?: string;
+  "Job Type"?: string;
+  "Employment Type"?: string;
+  [key: string]: string | undefined;
+}
+
+interface ApiResponseData {
+  result?: {
+    status?: string;
+    id?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    capturedLists?: {
+      [key: string]: JobData[];
+    };
+  };
+}
+
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<"scrape" | "data" | null>(
     null
   );
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [scrapedData, setScrapedData] = useState<any[]>([]);
-  const [debugData, setDebugData] = useState<any>(null);
+  const [scrapedData, setScrapedData] = useState<JobData[]>([]);
+  const [debugData, setDebugData] = useState<ApiResponseData | null>(null);
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [dataReady, setDataReady] = useState(false);
-  const [pollingCount, setPollingCount] = useState(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 스크래핑 설정 상태
-  const [originUrl, setd] = useState(
+  const [originUrl, setOriginUrl] = useState(
     "https://www.saramin.co.kr/zf_user/jobs/list/job-category?cat_kewd=322%2C323%2C2198&panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y"
   );
   const [jobListingsLimit, setJobListingsLimit] = useState(10);
@@ -97,7 +126,7 @@ export default function Home() {
   };
 
   // 채용 유형 필드를 찾는 함수
-  const getJobType = (job: any): string => {
+  const getJobType = (job: JobData): string => {
     // 가능한 채용 유형 필드명들
     const possibleFields = [
       "Job Type",
@@ -135,17 +164,17 @@ export default function Home() {
   };
 
   // 채용 데이터를 키워드 매칭 및 등록일 기준으로 정렬하는 함수
-  const sortJobDataByKeywordsAndDate = (jobData: any[]) => {
+  const sortJobDataByKeywordsAndDate = (jobData: JobData[]) => {
     // 키워드 매칭 여부에 따라 분류
-    const matchedJobs = jobData.filter((job: any) =>
+    const matchedJobs = jobData.filter((job: JobData) =>
       matchesKeywords(job["Job Title"] || "")
     );
     const unmatchedJobs = jobData.filter(
-      (job: any) => !matchesKeywords(job["Job Title"] || "")
+      (job: JobData) => !matchesKeywords(job["Job Title"] || "")
     );
 
     // 각 그룹을 등록일 기준으로 정렬
-    const sortByDate = (jobs: any[]) => {
+    const sortByDate = (jobs: JobData[]) => {
       return jobs.sort((a, b) => {
         const dateA = parsePostedDate(a["Date Posted"] || "");
         const dateB = parsePostedDate(b["Date Posted"] || "");
@@ -219,8 +248,8 @@ export default function Home() {
         }
       }
       return false;
-    } catch (error) {
-      console.error("데이터 상태 확인 중 오류:", error);
+    } catch (err) {
+      console.error("데이터 상태 확인 중 오류:", err);
       return false;
     }
   };
@@ -228,38 +257,33 @@ export default function Home() {
   // 폴링 시작
   const startPolling = (currentTaskId: string) => {
     setIsPolling(true);
-    setPollingCount(0);
     setDataReady(false);
 
+    let pollingCount = 0;
+
     pollingIntervalRef.current = setInterval(async () => {
-      setPollingCount((prevCount) => {
-        const newCount = prevCount + 1;
-        console.log(`📡 데이터 확인 중... (${newCount}회차)`);
+      pollingCount += 1;
+      console.log(`📡 데이터 확인 중... (${pollingCount}회차)`);
 
-        // 30회차 제한 체크 (비동기로 처리)
-        setTimeout(async () => {
-          if (newCount >= 30) {
-            stopPolling();
-            alert(
-              "스크래핑이 완료되지 않았습니다.\n30회 확인 후에도 데이터가 준비되지 않아 중단합니다.\n\n다시 스크래핑을 실행해주세요."
-            );
-            console.log("❌ 30회차 도달로 폴링 중단");
-            return;
-          }
+      // 30회차 제한 체크
+      if (pollingCount >= 30) {
+        stopPolling();
+        alert(
+          "스크래핑이 완료되지 않았습니다.\n30회 확인 후에도 데이터가 준비되지 않아 중단합니다.\n\n다시 스크래핑을 실행해주세요."
+        );
+        console.log("❌ 30회차 도달로 폴링 중단");
+        return;
+      }
 
-          const hasData = await checkDataStatus(currentTaskId);
+      const hasData = await checkDataStatus(currentTaskId);
 
-          if (hasData) {
-            setDataReady(true);
-            stopPolling();
-            console.log(
-              "🎉 데이터가 준비되었습니다! 이제 '스크래핑 데이터 가져오기' 버튼을 클릭하세요."
-            );
-          }
-        }, 0);
-
-        return newCount;
-      });
+      if (hasData) {
+        setDataReady(true);
+        stopPolling();
+        console.log(
+          "🎉 데이터가 준비되었습니다! 이제 '스크래핑 데이터 가져오기' 버튼을 클릭하세요."
+        );
+      }
     }, 10000); // 10초마다 실행
   };
 
@@ -471,7 +495,6 @@ export default function Home() {
 
           // 데이터를 성공적으로 가져온 후 상태 초기화
           setDataReady(false);
-          setPollingCount(0);
 
           alert(
             `데이터 가져오기 완료!\n\n작업 상태: ${result.data.result.status}\n채용정보 수: ${jobData.length}개\nTask ID: ${result.taskId}`

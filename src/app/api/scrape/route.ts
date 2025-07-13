@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // URL 유효성 검사
     try {
       new URL(originUrl);
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: "유효하지 않은 URL입니다." },
         { status: 400 }
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       data: responseData,
       taskId: responseData.result?.id || null
     });
-  } catch (error) {
-    console.error("스크래핑 중 오류 발생:", error);
+  } catch (err) {
+    console.error("스크래핑 중 오류 발생:", err);
     return NextResponse.json(
       { error: "스크래핑 중 오류가 발생했습니다." },
       { status: 500 }

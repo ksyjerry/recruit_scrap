@@ -54,8 +54,8 @@ export async function GET(
       data: responseData,
       taskId: taskId,
     });
-  } catch (error) {
-    console.error("Task 데이터 가져오기 중 오류 발생:", error);
+  } catch (err) {
+    console.error("Task 데이터 가져오기 중 오류 발생:", err);
     return NextResponse.json(
       { error: "Task 데이터를 가져오는 중 오류가 발생했습니다." },
       { status: 500 }
