@@ -24,8 +24,8 @@ export default function Home() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // 스크래핑 설정 상태
-  const [originUrl, setOriginUrl] = useState(
-    "https://www.saramin.co.kr/zf_user/jobs/list/job-category?cat_kewd=322&tab_type=dispatch&panel_type=&search_optional_item=n&search_done=y&panel_count=y&smart_tag="
+  const [originUrl, setd] = useState(
+    "https://www.saramin.co.kr/zf_user/jobs/list/job-category?cat_kewd=322%2C323%2C2198&panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y"
   );
   const [jobListingsLimit, setJobListingsLimit] = useState(10);
   const [keywordsInput, setKeywordsInput] = useState(
