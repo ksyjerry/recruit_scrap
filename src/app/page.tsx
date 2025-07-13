@@ -312,7 +312,7 @@ export default function Home() {
 
     try {
       new URL(originUrl);
-    } catch (error) {
+    } catch {
       alert("유효하지 않은 URL입니다. 올바른 URL을 입력해주세요!");
       return;
     }
